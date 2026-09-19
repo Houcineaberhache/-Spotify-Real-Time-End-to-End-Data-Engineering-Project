@@ -70,8 +70,13 @@ if __name__ == "__main__":
     for p in song_artist_pairs:
         print(f"{p['song']} — {p['artist']} -> song_id={p['song_id']}")
 
-    while True:
-        event = generate_event()
-        producer.send(KAFKA_TOPIC, event)
-        print(f"Produced event: {event['event_type']} - {event['song_name']} by {event['artist_name']} (user {event['user_id']})")
-        time.sleep(EVENT_INTERVAL_SECONDS)
+while True:
+    event = generate_event()
+    try:
+        future = producer.send(KAFKA_TOPIC, event)
+        record_metadata = future.get(timeout=10)
+        print(f"Produced event: {event['event_type']} - {event['song_name']} by {event['artist_name']} "
+              f"(user {event['user_id']}) -> partition {record_metadata.partition}, offset {record_metadata.offset}")
+    except Exception as e:
+        print(f"❌ Failed to send event: {e}")
+    time.sleep(EVENT_INTERVAL_SECONDS)
